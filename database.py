@@ -1,5 +1,6 @@
 import sqlite3
 
+
 class Database:
     def __init__(self):
         self.conn = sqlite3.connect("city.db")
@@ -9,37 +10,41 @@ class Database:
     def create_tables(self):
         self.cursor.execute("""
             CREATE TABLE IF NOT EXISTS player (
-                id INTEGER PRIMARY KEY, money INTEGER, materials INTEGER, season INTEGER
+                id INTEGER PRIMARY KEY, money INTEGER, materials INTEGER, 
+                season INTEGER, population INTEGER, happiness INTEGER, ecology INTEGER
             )
         """)
         self.cursor.execute("SELECT COUNT(*) FROM player")
         if self.cursor.fetchone()[0] == 0:
-            self.cursor.execute("INSERT INTO player (money, materials, season) VALUES (50, 30, 1)")
+            self.cursor.execute("""
+                INSERT INTO player (money, materials, season, population, happiness, ecology) 
+                VALUES (50, 100, 1, 2, 100, 100)
+            """)
 
         self.cursor.execute("""
             CREATE TABLE IF NOT EXISTS city_map (
                 x INTEGER, y INTEGER, building TEXT
             )
         """)
+
+        self.cursor.execute("""
+            CREATE TABLE IF NOT EXISTS achievements (
+                code TEXT PRIMARY KEY
+            )
+        """)
         self.conn.commit()
 
     def get_player(self):
-        self.cursor.execute("SELECT money, materials, season FROM player")
+        self.cursor.execute("SELECT money, materials, season, population, happiness, ecology FROM player WHERE id=1")
         return self.cursor.fetchone()
 
-    def update_player(self, money=None, materials=None, season=None):
+    def update_player(self, **kwargs):
         updates, params = [], []
-        if money is not None:
-            updates.append("money = ?")
-            params.append(money)
-        if materials is not None:
-            updates.append("materials = ?")
-            params.append(materials)
-        if season is not None:
-            updates.append("season = ?")
-            params.append(season)
+        for key, val in kwargs.items():
+            updates.append(f"{key} = ?")
+            params.append(val)
         if updates:
-            self.cursor.execute(f"UPDATE player SET {', '.join(updates)}", params)
+            self.cursor.execute(f"UPDATE player SET {', '.join(updates)} WHERE id=1", params)
             self.conn.commit()
 
     def save_building(self, x, y, name):
@@ -53,3 +58,15 @@ class Database:
     def get_buildings(self):
         self.cursor.execute("SELECT x, y, building FROM city_map")
         return self.cursor.fetchall()
+
+    def unlock_achievement(self, code):
+        try:
+            self.cursor.execute("INSERT INTO achievements (code) VALUES (?)", (code,))
+            self.conn.commit()
+            return True
+        except sqlite3.IntegrityError:
+            return False
+
+    def get_unlocked_achievements(self):
+        self.cursor.execute("SELECT code FROM achievements")
+        return [row[0] for row in self.cursor.fetchall()]
