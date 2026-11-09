@@ -1,4 +1,12 @@
-.venv/
+bd/
+city.db
+*.csv
 __pycache__/
-*.db
+*.py[cod]
+.venv/
+venv/
+build/
+dist/
+*.spec
+.vscode/
 .idea/
